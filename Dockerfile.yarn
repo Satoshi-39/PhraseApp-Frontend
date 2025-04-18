@@ -1,0 +1,25 @@
+FROM node:20-alpine
+
+WORKDIR /app/PhraseApp-Frontend
+
+# yarnをインストール
+RUN apk add --no-cache yarn
+
+# 依存関係のファイルをコピー
+COPY package*.json ./
+COPY yarn.lock* ./
+
+# 依存関係のインストール
+RUN yarn install --network-timeout 600000
+
+# 設定ファイルをコピー
+COPY postcss.config.js ./
+COPY tailwind.config.ts ./
+COPY tsconfig.json ./
+COPY next.config.mjs ./
+
+# ソースコードをコピー
+COPY . .
+
+# 開発モードで起動
+CMD ["yarn", "dev"]

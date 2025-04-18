@@ -1,0 +1,17 @@
+# ベースイメージとしてNode.jsを使用
+FROM node:18-alpine
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# パッケージマネージャーファイルをコピー
+COPY package.json package-lock.json* ./
+
+# 依存関係をインストール（--legacy-peer-depsフラグを追加）
+RUN npm install --legacy-peer-deps
+
+# アプリケーションのポートを公開
+EXPOSE 3000
+
+# 開発サーバーを起動
+CMD ["npm", "run", "dev"]

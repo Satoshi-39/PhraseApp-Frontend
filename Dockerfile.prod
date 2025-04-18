@@ -1,0 +1,49 @@
+# ベースイメージとしてNode.jsを使用
+FROM node:18-alpine AS base
+
+# 依存関係のインストールフェーズ
+FROM base AS deps
+WORKDIR /app/PhraseApp-Frontend
+
+# パッケージマネージャーファイルをコピー
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps
+
+# ビルドフェーズ
+FROM base AS builder
+WORKDIR /app/PhraseApp-Frontend
+COPY --from=deps /app/PhraseApp-Frontend/node_modules ./node_modules
+
+# 設定ファイルを先にコピー
+COPY postcss.config.js ./
+COPY tailwind.config.ts ./
+COPY tsconfig.json ./
+COPY next.config.mjs ./
+
+# ソースコードをコピー
+COPY . .
+
+# 環境変数を設定
+ENV NEXT_PUBLIC_API_URL=http://13.230.194.92:8080
+
+# アプリケーションをビルド
+RUN npm run build
+
+# 本番環境フェーズ
+FROM base AS runner
+WORKDIR /app/PhraseApp-Frontend
+
+ENV NODE_ENV production
+
+# 非root ユーザーを作成して使用
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+USER nextjs
+
+# ビルド済みのアプリケーションをコピー
+COPY --from=builder /app/PhraseApp-Frontend/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/PhraseApp-Frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/PhraseApp-Frontend/.next/static ./.next/static
+
+# アプリケーションを起動
+CMD ["node", "server.js"]
